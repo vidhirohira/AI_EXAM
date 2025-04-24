@@ -1,0 +1,101 @@
+import math
+
+def print_board(board):
+    print("\n".join([" | ".join(cell if cell else " " for cell in row) for row in board]))
+    print()
+
+# Checks if there's a winner or the game is a draw
+def check_winner(board):
+    lines = board + list(map(list, zip(*board)))  # Rows and columns
+    lines.append([board[i][i] for i in range(3)])  # Main diagonal
+    lines.append([board[i][2 - i] for i in range(3)])  # Anti-diagonal
+    for line in lines:
+        if line[0] != "" and all(cell == line[0] for cell in line):
+            return line[0]
+    return "Draw" if all(cell != "" for row in board for cell in row) else None
+
+def minimax_alpha_beta(board, is_maximizing, ai_player, human_player, alpha, beta):
+    winner = check_winner(board)
+    if winner:  
+        if winner == ai_player:
+            return (1, None)
+        elif winner == human_player:
+            return (-1, None)
+        else:
+            return (0, None)
+
+    best_score = -math.inf if is_maximizing else math.inf
+    best_move = None
+
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == "":
+                # simulate the move
+                board[i][j] = ai_player if is_maximizing else human_player
+                score, _ = minimax_alpha_beta(board, not is_maximizing, ai_player, human_player, alpha, beta)
+                board[i][j] = ""  
+
+                # maximize/minimize score and update alpha/beta
+                if is_maximizing:
+                    if score > best_score:
+                        best_score = score
+                        best_move = (i, j)
+                    alpha = max(alpha, score)
+                else:
+                    if score < best_score:
+                        best_score = score
+                        best_move = (i, j)
+                    beta = min(beta, score)
+
+                # cut off further exploration 
+                if beta <= alpha:
+                    break
+        if beta <= alpha:
+            break
+
+    return best_score, best_move
+
+def play_game():
+    board = [["" for _ in range(3)] for _ in range(3)]
+    user_player = input("Choose your symbol (X or O): ").strip().upper()
+    while user_player not in ['X', 'O']:
+        user_player = input("Invalid choice. Choose X or O: ").strip().upper()
+
+    ai_player = 'O' if user_player == 'X' else 'X'
+    current_turn = 'X'  # X always starts
+
+    print("\nLet's play Tic-Tac-Toe!")
+    print_board(board)
+
+    while True:
+        if current_turn == user_player:
+            while True:
+                try:
+                    row = int(input("Enter row (0-2): "))
+                    col = int(input("Enter column (0-2): "))
+                    if board[row][col] == "":
+                        board[row][col] = user_player
+                        break
+                    else:
+                        print("Cell already taken, choose another.")
+                except (ValueError, IndexError):
+                    print("Invalid input. Enter numbers from 0 to 2.")
+        else:
+            print("AI is thinking...")
+            _, move = minimax_alpha_beta(board, True, ai_player, user_player, -math.inf, math.inf)
+            if move:
+                board[move[0]][move[1]] = ai_player
+
+        print_board(board)
+        result = check_winner(board)
+        if result:
+            if result == "Draw":
+                print("It's a draw!")
+            else:
+                print(f"{result} wins!")
+            break
+
+        current_turn = ai_player if current_turn == user_player else user_player
+
+if __name__ == "__main__":
+    play_game()
